@@ -513,57 +513,32 @@
     
 <script>
 
-    // --- PWA AUTO-INSTALL POPUP ---
     let deferredPrompt;
 
-    // Detect if the app is already installed (Standalone mode)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
-
     window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent Chrome's default mini-infobar
         e.preventDefault();
         deferredPrompt = e;
         
-        // Show the custom install popup automatically if they haven't dismissed it
-        if (!localStorage.getItem('dipsum_install_dismissed') && !isStandalone) {
-            setTimeout(() => {
-                const installModal = document.getElementById('installPromptModal');
-                if (installModal) installModal.classList.add('active');
-            }, 2000); // 2-second delay for a smooth entrance
-        }
+        setTimeout(() => {
+            const installModal = document.getElementById('installPromptModal');
+            if (installModal && !localStorage.getItem('dipsum_install_dismissed')) {
+                installModal.classList.add('active');
+            }
+        }, 1500);
     });
 
-    // Handle the "Install App" Button Click
     document.getElementById('btnInstallApp').addEventListener('click', async () => {
         document.getElementById('installPromptModal').classList.remove('active');
         if (deferredPrompt) {
-            // Show the native Android install prompt
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
             deferredPrompt = null;
-        } else {
-            // iOS Fallback (Apple blocks beforeinstallprompt)
-            displaySystemAlert("Install App", "To install on iOS: Tap the 'Share' icon at the bottom of Safari, then tap 'Add to Home Screen'.", "📱");
         }
     });
 
-    // Remember if the user clicks "Use in Browser" so we don't spam them
-    const dismissBtn = document.querySelector('#installPromptModal button:last-child');
-    if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => {
-            localStorage.setItem('dipsum_install_dismissed', 'true');
-        });
-    }
-
-    // Force the popup for iOS users (since Apple won't fire beforeinstallprompt)
-    window.addEventListener('DOMContentLoaded', () => {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS && !isStandalone && !localStorage.getItem('dipsum_install_dismissed')) {
-            setTimeout(() => {
-                const installModal = document.getElementById('installPromptModal');
-                if (installModal) installModal.classList.add('active');
-            }, 2000);
-        }
+    document.querySelector('#installPromptModal .btn-decline, #installPromptModal button[onclick*="remove(\'active\')"]').addEventListener('click', () => {
+        localStorage.setItem('dipsum_install_dismissed', 'true');
     });
     
     // ==========================================
