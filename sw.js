@@ -1,12 +1,11 @@
-const CACHE_NAME = 'dipsum-v4';
+const CACHE_NAME = 'dipsum-v6';
 const ASSETS = [
-  '/index.html',
-  '/dipsum-logo.png',
-  '/manifest.json',
-  '/sw.js'
+  './index.html',
+  './dipsum-logo.png',
+  './manifest.json',
+  './sw.js'
 ];
 
-// Force fetch directly from the network during installation
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
@@ -23,7 +22,6 @@ self.addEventListener('install', function(event) {
   self.skipWaiting();
 });
 
-// Clean up old version caches automatically
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(keys) {
@@ -37,11 +35,8 @@ self.addEventListener('activate', function(event) {
   self.clients.claim();
 });
 
-// Network-first fetch strategy (Completely ignores API traffic)
 self.addEventListener('fetch', function(event) {
-  // NEW: Tell the Service Worker to ignore Google Apps Script traffic!
   if (event.request.url.indexOf('script.google.com') !== -1) return;
-  
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
@@ -59,15 +54,8 @@ self.addEventListener('message', function(event) {
   }
 });
 
-// ==========================================
-// 🔔 PUSH NOTIFICATION ENGINE (Smart Update)
-// ==========================================
-
 self.addEventListener('push', event => {
   const promise = (async () => {
-    
-    // --- THE MAGIC VISIBILITY CHECK ---
-    // Look at all open browser windows to see if the user is actively using the app
     const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     let isAppFocused = false;
     
@@ -78,17 +66,13 @@ self.addEventListener('push', event => {
         }
     }
 
-    // If the app is open and focused on the screen, STOP the OS notification!
-    // Your index.html will handle the UI updates and play the tune.mp3 sounds.
     if (isAppFocused) {
-        console.log("App is actively open. Suppressing OS notification.");
         return; 
     }
-    // ----------------------------------
 
     let title = 'Dipsum';
     let body = 'You have a new message';
-    let url = '/';
+    let url = './';
 
     if (event.data) {
       try {
@@ -101,11 +85,10 @@ self.addEventListener('push', event => {
       }
     }
 
-    // Force show if the app is closed or in the background
     await self.registration.showNotification(title, {
       body: body,
-      icon: '/dipsum-logo.png',
-      badge: '/dipsum-logo.png',
+      icon: './dipsum-logo.png',
+      badge: './dipsum-logo.png',
       vibrate: [300, 100, 300, 100, 300],
       requireInteraction: true,
       tag: 'dipsum-msg-' + Date.now(), 
@@ -123,9 +106,9 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const client of list) {
-        if (client.url.includes('/') && 'focus' in client) return client.focus();
+        if (client.url.includes('index.html') && 'focus' in client) return client.focus();
       }
-      return clients.openWindow('/');
+      return clients.openWindow('./index.html');
     })
   );
 });
