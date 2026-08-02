@@ -1804,38 +1804,6 @@
         }, 1000);
     }
 
-    let deferredPrompt;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        setTimeout(() => {
-            const installModal = document.getElementById('installPromptModal');
-            if (installModal && !localStorage.getItem('dipsum_install_dismissed')) {
-                installModal.classList.add('active');
-            }
-        }, 1500);
-    });
-
-    document.getElementById('btnInstallApp').addEventListener('click', async () => {
-        document.getElementById('installPromptModal').classList.remove('active');
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
-            deferredPrompt = null;
-        }
-    });
-
-    document.querySelector('#installPromptModal .btn-decline, #installPromptModal button[onclick*="remove(\'active\')"]').addEventListener('click', () => {
-        localStorage.setItem('dipsum_install_dismissed', 'true');
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-        if (localStorage.getItem('dipsum_dark_mode') === 'true') { document.body.classList.add('dark-mode'); }
-    });
-
     function toggleAppTheme() {
         const body = document.body;
         body.classList.toggle('dark-mode');
