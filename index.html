@@ -731,21 +731,32 @@
     }
 
 
-    let isSyncing = false; // Traffic controller
+    let isSyncing = false; 
+    let syncTimeoutId = null; // NEW: Tracks the timer so we can kill it
 
     function startAppSynchronization() {
         syncCycle();
         fetchAndDisplayRecoveryId();
-        // Removed the setInterval! The syncCycle will now loop itself safely.
     }
 
+    // NEW: Tab Visibility Detector - Kills network traffic when app is hidden!
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            console.log("App resumed! Forcing instant sync.");
+            clearTimeout(syncTimeoutId);
+            isSyncing = false; 
+            syncCycle(true); // Force a hard, instant render
+        }
+    });
+
     function syncCycle(forceRender = false) {
-        if (isSyncing && !forceRender) return Promise.resolve(); // Stop network traffic jams
+        // ⚡ CRASH FIX: If the app is minimized or phone is locked, stop polling!
+        if (document.hidden && !forceRender) return Promise.resolve();
+        
+        if (isSyncing && !forceRender) return Promise.resolve(); 
         isSyncing = true;
 
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
-
-        // Create an array of network promises
         let networkTasks = [];
 
         if (activeChatTarget) {
@@ -874,38 +885,16 @@
                 .catch(() => {})
         );
 
-        // Wait for all fetches to finish, THEN schedule the next sync in 2 seconds
         return Promise.all(networkTasks).finally(() => {
             isSyncing = false;
-            if (!forceRender) {
-                setTimeout(() => syncCycle(), 2000);
+            // Only schedule the next loop if the user is actively staring at the app!
+            if (!forceRender && !document.hidden) {
+                clearTimeout(syncTimeoutId);
+                syncTimeoutId = setTimeout(() => syncCycle(), 2000);
             }
         });
     }
     
-    // --- MOMENTS ENGINE ---
-    function openMomentCreator() {
-        const listDiv = document.getElementById('momentUserChecklist');
-        listDiv.innerHTML = '';
-        const rows = document.getElementById('userListContainer').querySelectorAll('.status-dot');
-        let friendsCount = 0;
-        
-        rows.forEach(dot => {
-            const name = dot.nextElementSibling.nextElementSibling.innerText.trim();
-            if(dot.parentElement.nextElementSibling.innerText.includes("Connected")) {
-                listDiv.innerHTML += `<label style="display:block; margin-bottom:8px;"><input type="checkbox" value="${name.toLowerCase()}" class="moment-target-cb" checked> ${capitalizeFirstLetter(name)}</label>`;
-                friendsCount++;
-            }
-        });
-        
-        if (friendsCount === 0) {
-            listDiv.innerHTML = "<p style='font-size:12px; color:red;'>You need connected friends to broadcast!</p>";
-        } else {
-            listDiv.innerHTML = `<label style="display:block; margin-bottom:8px; font-weight:bold; border-bottom:1px solid #eee; padding-bottom:5px;"><input type="checkbox" id="momentSelectAll" checked onchange="toggleAllMomentChecks(this)"> Select All</label>` + listDiv.innerHTML;
-        }
-        document.getElementById('momentCreatorModal').classList.add('active');
-    }
-
     function toggleAllMomentChecks(master) {
         document.querySelectorAll('.moment-target-cb').forEach(cb => cb.checked = master.checked);
     }
