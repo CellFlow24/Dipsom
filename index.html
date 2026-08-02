@@ -512,17 +512,22 @@
 </div>
     
 <script>
-    const backendBaseUrl = 'https://web-production-8bfc1.up.railway.app';
+    // ==========================================
+    // DIPSUM LOUNGE - SERVERLESS FRONTEND ENGINE
+    // ==========================================
+    
+    // NEW: Your deployed Google Apps Script Web App URL
+    const backendBaseUrl = 'https://script.google.com/macros/s/AKfycbx6owmb7r7i64crFlhpP_28MIR8VI4BeWZsHy8nkm8mrO_azuFzFWczB9Oo8Opuhwtp/exec';
+    
     let totalUnreadMessagesTracked = 0;
     const backgroundChime = new Audio('tune1.mp3'); 
     const activeChatChime = new Audio('tune2.mp3'); 
     let refreshLoop = null, currentInviteSender = null, isSignUpMode = false, activeChatTarget = null, currentLoadedMessageCount = 0, typingTimer, lastSyncPayload = ""; 
 
-    // --- NEW: DIRECTORY TAB LOGIC WITH LATENCY MANAGEMENT ---
     let currentDirectoryTab = 'connected';
 
     function switchDirectoryTab(tab) {
-        if (currentDirectoryTab === tab) return; // Prevent animation if tapping the same tab twice
+        if (currentDirectoryTab === tab) return; 
 
         currentDirectoryTab = tab;
         const btnConnected = document.getElementById('tabConnectedBtn');
@@ -537,19 +542,14 @@
             btnConnected.style.background = 'transparent'; btnConnected.style.color = '#7a1029';
         }
         
-        // 1. Trigger the fade-out and slide-down animation
         if (listContainer) listContainer.classList.add('tab-switching');
         
-        // 2. Wait 200ms for fade out, then ask the server for data and WAIT for it
         setTimeout(() => {
-            // Passing 'true' tells syncCycle to forcefully redraw the UI
             const syncPromise = syncCycle(true);
             if (syncPromise) {
                 syncPromise.then(() => {
-                    // Only fade back in AFTER the new data is fully drawn on screen!
                     if (listContainer) listContainer.classList.remove('tab-switching');
                 }).catch(() => {
-                    // Fallback just in case the network fails
                     if (listContainer) listContainer.classList.remove('tab-switching');
                 });
             } else {
@@ -558,12 +558,11 @@
         }, 200);
     }
     
-    // --- E2EE SCRAMBLER ENGINE (EMOJI SAFE) ---
+    // --- E2EE SCRAMBLER ENGINE ---
     function encryptE2E(text, key) {
         let result = '';
         const encoded = unescape(encodeURIComponent(text));
         for(let i=0; i<encoded.length; i++) {
-            // The % 256 keeps the math safely under Javascript's limit!
             let cipherByte = (encoded.charCodeAt(i) + key.charCodeAt(i % key.length)) % 256;
             result += String.fromCharCode(cipherByte);
         }
@@ -577,7 +576,7 @@
             let result = '';
             for(let i=0; i<raw.length; i++) {
                 let plainByte = (raw.charCodeAt(i) - key.charCodeAt(i % key.length)) % 256;
-                if (plainByte < 0) plainByte += 256; // Fix for negative numbers
+                if (plainByte < 0) plainByte += 256; 
                 result += String.fromCharCode(plainByte);
             }
             return decodeURIComponent(escape(result));
@@ -591,10 +590,7 @@
             document.getElementById('chatLounge').style.display = 'flex';
             document.getElementById('currentProfileName').innerText = savedSessionUser.toLowerCase();
             
-            // Safely start sync without crashing
             try { startAppSynchronization(); } catch(e) { console.error(e); }
-            
-            // Safely check for push notifications without triggering false errors
             try {
                 if (typeof setupPushNotifications === 'function') {
                     setupPushNotifications(savedSessionUser.toLowerCase());
@@ -602,7 +598,6 @@
             } catch(e) { console.error("Push notification setup skipped."); }
         }
         
-        // 1. Check Memory on Load for Dark Mode
         if (localStorage.getItem('dipsum_dark_mode') === 'true') {
             document.body.classList.add('dark-mode');
         }
@@ -616,7 +611,6 @@
         document.getElementById('toggleText').innerText = isSignUpMode ? "Already have an account?" : "Need an account?";
         document.getElementById('toggleLink').innerText = isSignUpMode ? "Log In here" : "Create one here";
         
-        // Hide "Forgot Password" and Show "T&C Checkbox" during Sign Up
         document.getElementById('forgotPassBtn').style.display = isSignUpMode ? 'none' : 'block';
         document.getElementById('tncContainer').style.display = isSignUpMode ? 'flex' : 'none';
     }
@@ -626,7 +620,6 @@
         const pass = document.getElementById('passwordInput').value.trim();
         if (!user || !pass) return displaySystemAlert("Missing Info", "Fill both fields.", "🚫");
 
-        // NEW: Enforce Terms and Conditions
         if (isSignUpMode && !document.getElementById('tncCheckbox').checked) {
             return displaySystemAlert("Agreement Required", "You must read and agree to the Terms & Conditions to create an account.", "📜");
         }
@@ -638,7 +631,8 @@
         btn.innerText = "Processing...";
         btn.disabled = true; 
 
-        let targetUrl = `${backendBaseUrl}/api/${isSignUpMode ? 'register' : 'login'}?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+        // UPDATED FETCH ROUTE: Apps Script GET Parameters
+        let targetUrl = `${backendBaseUrl}?action=${isSignUpMode ? 'register' : 'login'}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
         
         fetch(targetUrl)
             .then(res => {
@@ -654,7 +648,7 @@
                     if (isSignUpMode) {
                         displaySystemAlert("Success", "Account created!", "✨");
                         toggleAuthMode();
-                        document.getElementById('tncCheckbox').checked = false; // Reset checkbox
+                        document.getElementById('tncCheckbox').checked = false;
                     } else {
                         localStorage.setItem('dipsum_logged_user', user.toLowerCase());
                         document.getElementById('loginCard').style.display = 'none';
@@ -680,24 +674,20 @@
             });
     }
 
-    // --- BOLD FEATURE: THE INTERRUPT LOGIC ---
-    let interruptTimer; // Tracks the 3-second auto-close
+    let interruptTimer; 
 
     function triggerLocalInterrupt(avatarChoice) {
         const overlay = document.getElementById('interruptOverlay');
         const imgTag = document.getElementById('interruptAvatarImg');
         
-        // Set the image dynamically based on the payload!
         imgTag.src = avatarChoice === 'girl' ? 'girl.jpg' : 'boy.jpg';
-        
         overlay.classList.add('active');
         
-        // Re-trigger CSS animation by resetting the element
         imgTag.style.animation = 'none';
         void imgTag.offsetWidth; 
         imgTag.style.animation = 'avatarPopIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
 
-        if (navigator.vibrate) navigator.vibrate([200, 100, 400]); // Custom bold vibration pattern
+        if (navigator.vibrate) navigator.vibrate([200, 100, 400]); 
         
         clearTimeout(interruptTimer);
         interruptTimer = setTimeout(() => {
@@ -720,13 +710,12 @@
     function syncCycle(forceRender = false) {
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
 
-        // 1. Check for active messages
         if (activeChatTarget) {
             fetchActiveChatMessages(user, activeChatTarget);
         }
 
-        // 2. Check for incoming invites (This was previously blocked by the return statement!)
-        fetch(`${backendBaseUrl}/api/checkInvites?user=${encodeURIComponent(user)}`).then(res => res.text()).then(response => {
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=checkInvites&user=${encodeURIComponent(user)}`).then(res => res.text()).then(response => {
             const modal = document.getElementById('inviteModal');
             if (response.startsWith("PENDING:")) {
                 currentInviteSender = response.split(":")[1];
@@ -737,11 +726,11 @@
             }
         });
 
-        // 3. Sync the main directory and return the promise for the tab animation
-        return fetch(`${backendBaseUrl}/api/users?viewer=${encodeURIComponent(user)}`)
+        // UPDATED FETCH ROUTE
+        return fetch(`${backendBaseUrl}?action=users&viewer=${encodeURIComponent(user)}`)
             .then(res => res.text())
             .then(rawText => {
-                if(!rawText || rawText.trim() === "") return;
+                if(!rawText || rawText.trim() === "" || rawText.startsWith("ERROR")) return;
 
                 let dataChanged = (rawText !== lastSyncPayload) || forceRender;
                 lastSyncPayload = rawText;
@@ -792,7 +781,6 @@
 
                         if (cleanName === activeChatTarget) updateHeaderUserStatusIndicator(isOnline);
 
-                        // --- TAB FILTERING LOGIC ---
                         let shouldRender = false;
                         if (currentDirectoryTab === 'connected' && relationshipStatus === "CONNECTED") shouldRender = true;
                         if (currentDirectoryTab === 'new' && relationshipStatus !== "CONNECTED") shouldRender = true;
@@ -840,10 +828,9 @@
 
                 if (currentCycleUnreadSum > totalUnreadMessagesTracked) backgroundChime.play().catch(()=>{});
                 totalUnreadMessagesTracked = currentCycleUnreadSum;
-            });
+            }).catch(() => {});
     }
     
-
     // --- MOMENTS ENGINE ---
     function openMomentCreator() {
         const listDiv = document.getElementById('momentUserChecklist');
@@ -892,8 +879,10 @@
                 const b64 = canvas.toDataURL('image/jpeg', 0.8);
                 
                 const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
-                fetch(`${backendBaseUrl}/api/uploadMoment?from=${encodeURIComponent(user)}&targets=${encodeURIComponent(targets)}`, {
-                    method: 'POST', body: b64
+                
+                // UPDATED FETCH ROUTE (Apps Script POST)
+                fetch(`${backendBaseUrl}?action=uploadMoment&from=${encodeURIComponent(user)}&targets=${encodeURIComponent(targets)}`, {
+                    method: 'POST', body: b64, headers: { 'Content-Type': 'text/plain' }
                 }).then(() => {
                     fileInput.value = "";
                     document.getElementById('momentCreatorModal').classList.remove('active');
@@ -908,8 +897,10 @@
     let activeMomentAuthor = "";
     function viewMoment(author) {
         const currentUser = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
-        fetch(`${backendBaseUrl}/api/viewMoment?author=${encodeURIComponent(author)}`).then(res=>res.text()).then(payload => {
-            if(payload !== "NONE") {
+        
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=viewMoment&author=${encodeURIComponent(author)}`).then(res=>res.text()).then(payload => {
+            if(payload !== "NONE" && !payload.startsWith("ERROR")) {
                 activeMomentAuthor = author;
                 document.getElementById('momentViewerAuthor').innerText = `${capitalizeFirstLetter(author)}'s Moment`;
                 document.getElementById('momentViewerImage').src = payload;
@@ -931,12 +922,11 @@
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
         
         let roomKey = [user, activeMomentAuthor].sort().join('#');
-        
-        // --- FIX: Wrap the reply tag BEFORE encrypting the payload ---
         let rawMessage = `[REPLY]📢 Moment Broadcast[/REPLY]` + replyText;
         let securePayload = encryptE2E(rawMessage, roomKey);
 
-        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeMomentAuthor)}`, {
+        // UPDATED FETCH ROUTE (Apps Script POST)
+        fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeMomentAuthor)}`, {
             method: 'POST', headers: {'Content-Type': 'text/plain'}, body: securePayload
         }).then(() => {
             document.getElementById('momentReplyInput').value = "";
@@ -948,7 +938,8 @@
 
     function sendChatInvite(targetUsername) {
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
-        fetch(`${backendBaseUrl}/api/sendInvite?from=${encodeURIComponent(user)}&to=${encodeURIComponent(targetUsername)}`).then(res => res.text()).then(r => {
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=sendInvite&from=${encodeURIComponent(user)}&to=${encodeURIComponent(targetUsername)}`).then(res => res.text()).then(r => {
             if (r.trim() === "SUCCESS") syncCycle();
         });
     }
@@ -956,7 +947,8 @@
     function submitInviteResponse(isAccepted) {
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
         document.getElementById('inviteModal').classList.remove('active');
-        fetch(`${backendBaseUrl}/api/respondInvite?user=${encodeURIComponent(user)}&action=${isAccepted?'accept':'decline'}`).then(()=>syncCycle());
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=respondInvite&user=${encodeURIComponent(user)}&actionType=${isAccepted?'accept':'decline'}`).then(()=>syncCycle());
     }
 
     function openTargetChatWindow(targetUsername) {
@@ -971,9 +963,10 @@
             if (statusDot && statusDot.classList.contains('status-online')) isTargetOnline = true;
         }
 
-        fetch(`${backendBaseUrl}/api/checkConnection?user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUsername)}`)
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=checkConnection&user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUsername)}`)
             .then(res => res.text()).then(isAllowed => {
-                if (isAllowed.trim() === "TRUE") {
+                if (isAllowed.trim() === "TRUE" || isAllowed.trim().startsWith("ERROR") === false) {
                     currentLoadedMessageCount = 0;
                     activeChatTarget = targetUsername;
                     cancelReply(); 
@@ -1077,18 +1070,23 @@
                     document.body.classList.add('mobile-chat-view-engaged');
                     fetchActiveChatMessages(user, targetUsername);
                 } else displaySystemAlert("Violation", `No active secure transmission channel.`, "🔒");
-            });
+            }).catch(() => {});
     }   
 
     function fetchActiveChatMessages(currentUser, targetUser) {
-        fetch(`${backendBaseUrl}/api/getMessages?from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(targetUser)}`)
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=getMessages&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(targetUser)}`)
             .then(res => res.text()).then(data => {
                 const logBox = document.getElementById('chatLogDisplay');
                 if(!logBox) return;
-                if(!data || data.trim() === "") { logBox.innerHTML = ""; currentLoadedMessageCount = 0; return; }
+                if(!data || data.trim() === "" || data.startsWith("ERROR")) { logBox.innerHTML = ""; currentLoadedMessageCount = 0; return; }
 
                 const incomingTokensRaw = data.split('\n');
                 const metaToken = incomingTokensRaw.pop(); 
+                
+                // Safety check in case the token formatting changes
+                if (!metaToken || !metaToken.includes("::")) return;
+
                 const [metaTag, isTypingStr, unreadCountStr] = metaToken.split('::');
 
                 const typingBox = document.getElementById('typingIndicatorContainer');
@@ -1144,7 +1142,6 @@
 
                         text = decryptE2E(text, roomKey);
 
-                        // -- SYSTEM MESSAGE INTERCEPTS (Heartbeat & Interrupt) --
                         let isHeartbeat = false;
                         let isInterrupt = false;
                         
@@ -1162,7 +1159,6 @@
                             }
                         } else if (text.trim().startsWith("[SYSTEM_INTERRUPT:")) {
                             isInterrupt = true;
-                            // Extract the 'boy' or 'girl' variable from the token
                             let attachedAvatar = text.replace("[SYSTEM_INTERRUPT:", "").replace("]", "").trim();
                             
                             if (sender !== currentUser && timestampMs > 0) {
@@ -1177,7 +1173,6 @@
                             }
                         }
 
-                        // -- Time Capsule Logic --
                         let isCapsule = false;
                         let capsuleIsLocked = false;
                         const capsuleMatch = text.match(/\[CAPSULE:(\d+)\](.*)/s);
@@ -1322,39 +1317,39 @@
                     });
                 }
                 if (isScrolledToBottom || isInitialLoad) logBox.scrollTop = logBox.scrollHeight;
-            });
+            }).catch(() => {});
     }
     
     function handleTypingInput(field) {
         field.style.height='auto'; field.style.height=Math.min(field.scrollHeight, 120)+'px';
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
         
-        // --- NEW: Toggle the dynamic button hiding ---
         const footerBar = document.getElementById('chatFooterBar');
         if (footerBar) {
             if (field.value.trim().length > 0) {
                 footerBar.classList.add('chat-typing-active');
             } else {
                 footerBar.classList.remove('chat-typing-active');
-                field.style.height = '42px'; // Reset height cleanly if empty
+                field.style.height = '42px'; 
             }
         }
 
         if(!activeChatTarget) return;
 
+        // UPDATED FETCH ROUTE (Fire and Forget)
         if (field.value.trim().length > 0) {
             if(!field.dataset.isTyping) {
                 field.dataset.isTyping = "true";
-                fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=true`).catch(()=>{});
+                fetch(`${backendBaseUrl}?action=setTyping&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=true`).catch(()=>{});
             }
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => {
                 field.dataset.isTyping = "";
-                fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
+                fetch(`${backendBaseUrl}?action=setTyping&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
             }, 2000);
         } else {
              field.dataset.isTyping = "";
-             fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
+             fetch(`${backendBaseUrl}?action=setTyping&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
         }
     }
 
@@ -1371,7 +1366,8 @@
                 const encodedPayloadString = "IMG_ATTACHMENT_DATA:" + canvas.toDataURL('image/jpeg', 0.6);
                 const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
 
-                fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+                // UPDATED FETCH ROUTE (Apps Script POST)
+                fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
                     method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: encodedPayloadString
                 }).then(() => { fileInput.value = ""; fetchActiveChatMessages(user, activeChatTarget); });
             };
@@ -1386,8 +1382,6 @@
         document.getElementById('sysAlertIcon').innerText = icon; 
         document.getElementById('sysAlertTitle').innerText = title;
         document.getElementById('sysAlertText').innerText = message; 
-        
-        // FIX: Now uses the .active class so the CSS animation actually fades it in!
         document.getElementById('systemAlertModal').classList.add('active'); 
     }
     
@@ -1402,6 +1396,7 @@
     
     function capitalizeFirstLetter(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ""; }
 
+    // --- DP OPTIMIZATION (80x80 Canvas Compression) ---
     function executeOwnProfilePicUpload(fileInput) {
         if (!fileInput.files || !fileInput.files[0]) return;
         const reader = new FileReader();
@@ -1409,14 +1404,20 @@
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-                const targetSize = 300; canvas.width = targetSize; canvas.height = targetSize;
+                
+                // NEW: Highly aggressive 80x80 crop to safely fit inside Sheets limitations
+                const targetSize = 80; 
+                canvas.width = targetSize; canvas.height = targetSize;
                 let srcX = 0, srcY = 0, srcSize = Math.min(img.width, img.height);
                 if (img.width > img.height) srcX = (img.width - img.height) / 2; else srcY = (img.height - img.width) / 2;
                 ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, targetSize, targetSize);
-                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.92);
+                
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85); // Added minor compression
                 const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
-                fetch(`${backendBaseUrl}/api/uploadProfilePic?user=${encodeURIComponent(user)}`, {
+                
+                // UPDATED FETCH ROUTE (Apps Script POST)
+                fetch(`${backendBaseUrl}?action=uploadProfilePic&user=${encodeURIComponent(user)}`, {
                     method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: compressedBase64
                 }).then(() => {
                     document.getElementById('myProfileAvatarElement').innerHTML = `<img src="${compressedBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
@@ -1493,13 +1494,14 @@
         inputField.style.height = "42px"; 
         inputField.dataset.isTyping = "";
         
-        // --- NEW: Reset dynamic UI back to default instantly when message is sent ---
         const footerBar = document.getElementById('chatFooterBar');
         if (footerBar) footerBar.classList.remove('chat-typing-active');
 
-        fetch(`${backendBaseUrl}/api/setTyping?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=setTyping&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}&typing=false`).catch(()=>{});
 
-        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+        // UPDATED FETCH ROUTE (Apps Script POST)
+        fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
             method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
         }).then(res => res.text()).then(() => { fetchActiveChatMessages(user, activeChatTarget); });
     }
@@ -1515,7 +1517,8 @@
             cancelReply(); 
         }
 
-        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+        // UPDATED FETCH ROUTE (Apps Script POST)
+        fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
             method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: payload
         }).then(() => {
             document.getElementById('stickerMiniDrawer').style.display = 'none';
@@ -1523,18 +1526,14 @@
         });
     }
 
-    
-    // --- RESTORED EMOJI HELPERS ---
     function toggleEmojiDrawerOverlay() {
         const drawer = document.getElementById('emojiMiniDrawer');
         if(!drawer) return;
         drawer.style.display = (drawer.style.display === 'none') ? 'grid' : 'none';
         
-        // Auto-close sticker drawer if open
         const stickerDrawer = document.getElementById('stickerMiniDrawer');
         if(stickerDrawer) stickerDrawer.style.display = 'none';
 
-        // Drop the keyboard when opening the emoji drawer
         if (drawer.style.display === 'grid') {
             const inputField = document.getElementById('msgInputField');
             if (inputField) inputField.blur();
@@ -1548,7 +1547,6 @@
         const emojiDrawer = document.getElementById('emojiMiniDrawer');
         if(emojiDrawer) emojiDrawer.style.display = 'none';
 
-        // Drop the keyboard when opening the sticker drawer
         if (drawer.style.display === 'flex') {
             const inputField = document.getElementById('msgInputField');
             if (inputField) inputField.blur();
@@ -1557,48 +1555,33 @@
 
     function injectEmojiToken(emojiChar) {
         const inputField = document.getElementById('msgInputField');
-        if(inputField) {
-            inputField.value += emojiChar;
-            // The focus() command was removed here so the keyboard won't pop up!
-        }
+        if(inputField) { inputField.value += emojiChar; }
     }
 
-    // --- NEW: LOGIC TO HANDLE TARGET SCROLL SCROLL-TO-REPLY HIGHLIGHTS ---
     function navigateToQuotedMessage(msgElementId) {
         const targetBubble = document.getElementById(msgElementId);
         if (!targetBubble) return;
 
-        // Smoothly roll container viewport to targeted context bubble area
         targetBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        // Strip previous flash trackers to reset trigger timers cleanly
         targetBubble.classList.remove('msg-highlight-active');
-        
-        // Trick engine reflow processing pipelines to guarantee animation restart
         void targetBubble.offsetWidth; 
-
-        // Apply style animations
         targetBubble.classList.add('msg-highlight-active');
         
-        // Strip out highlight rules once animation finishes
-        setTimeout(() => {
-            targetBubble.classList.remove('msg-highlight-active');
-        }, 1500);
+        setTimeout(() => { targetBubble.classList.remove('msg-highlight-active'); }, 1500);
     }
 
-    // --- NEW: HEARTBEAT DISPATCH & ANIMATION ---
     function sendHeartbeat() {
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
         if(!activeChatTarget) return;
 
         let roomKey = [user, activeChatTarget].sort().join('#');
-        // Encrypt the heartbeat token so no one intercepts it!
         let securePayload = encryptE2E("[SYSTEM_HEARTBEAT]", roomKey);
 
-        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+        // UPDATED FETCH ROUTE (Apps Script POST)
+        fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
             method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
         }).then(() => {
-            triggerHeartbeatAnimation(); // Flash it on your screen too!
+            triggerHeartbeatAnimation(); 
             fetchActiveChatMessages(user, activeChatTarget);
         });
     }
@@ -1607,17 +1590,15 @@
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
         if(!activeChatTarget) return;
 
-        // Pull the user's preference (defaults to 'boy')
         let myAvatar = localStorage.getItem('dipsum_interrupt_avatar') || 'boy';
         let roomKey = [user, activeChatTarget].sort().join('#');
-        
-        // Attach the avatar choice to the token!
         let securePayload = encryptE2E(`[SYSTEM_INTERRUPT:${myAvatar}]`, roomKey);
 
-        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+        // UPDATED FETCH ROUTE (Apps Script POST)
+        fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
             method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
         }).then(() => {
-            triggerLocalInterrupt(myAvatar); // Flash it on your own screen!
+            triggerLocalInterrupt(myAvatar); 
             fetchActiveChatMessages(user, activeChatTarget);
         });
     }
@@ -1626,7 +1607,6 @@
         const pane = document.querySelector('.chat-window-pane');
         if (!pane) return;
 
-        // Create 15 floating icons
         const numHearts = 15;
         const iconArray = ['💖', '✨', '💕', '🌸'];
 
@@ -1635,46 +1615,32 @@
             heart.className = 'floating-heart';
             heart.innerText = iconArray[Math.floor(Math.random() * iconArray.length)];
             
-            // Randomize starting positions and speeds
             heart.style.left = (Math.random() * 80 + 10) + '%';
             heart.style.animationDuration = (Math.random() * 2 + 2.5) + 's';
             heart.style.fontSize = (Math.random() * 15 + 15) + 'px';
             
             pane.appendChild(heart);
-            setTimeout(() => heart.remove(), 4500); // Clean up DOM
+            setTimeout(() => heart.remove(), 4500); 
         }
 
-        // Tap into the device's native vibration motor!
-        if (navigator.vibrate) {
-            navigator.vibrate([40, 80, 40]); // A soft, double-tap heartbeat feel
-        }
+        if (navigator.vibrate) { navigator.vibrate([40, 80, 40]); }
     }
 
-    // --- NEW: MONITORS SCROLL DEPTH TO TOGGLE FLOATING BUTTON VIEW STATUS ---
     function handleChatLogScroll() {
         const logBox = document.getElementById('chatLogDisplay');
         const floatBtn = document.getElementById('scrollToBottomFloatingBtn');
         if (!logBox || !floatBtn) return;
 
-        // Check if user has scrolled up more than 400 pixels from the bottom
         let distanceFromBottom = logBox.scrollHeight - logBox.clientHeight - logBox.scrollTop;
-        
-        if (distanceFromBottom > 400) {
-            floatBtn.classList.add('visible');
-        } else {
-            floatBtn.classList.remove('visible');
-        }
+        if (distanceFromBottom > 400) { floatBtn.classList.add('visible'); } 
+        else { floatBtn.classList.remove('visible'); }
     }
 
-    // --- NEW: SNAPS LOG DISPLAY VIEWPORT CLEANLY BACK DOWN TO BASE LINE ---
     function snapChatToBottom() {
         const logBox = document.getElementById('chatLogDisplay');
-        if (logBox) {
-            logBox.scrollTo({ top: logBox.scrollHeight, behavior: 'smooth' });
-        }
+        if (logBox) { logBox.scrollTo({ top: logBox.scrollHeight, behavior: 'smooth' }); }
     }
 
-    // --- NEW: TIME CAPSULE LOGIC ---
     let selectedCapsuleMinutes = 15;
 
     function openCapsuleModal() {
@@ -1684,7 +1650,6 @@
         document.querySelector('.capsule-timer-btn').classList.add('selected');
         document.getElementById('capsuleCreatorModal').classList.add('active');
         
-        // Hide keyboard nicely if a drawer was open
         const inputField = document.getElementById('msgInputField');
         if (inputField) inputField.blur();
     }
@@ -1703,7 +1668,6 @@
         if(!messageContent) return;
         messageContent = messageContent.replace(/\n/g, "<br>");
 
-        // Calculate unlock time
         let unlockTimestamp = Date.now() + (selectedCapsuleMinutes * 60 * 1000);
         let finalPayload = `[CAPSULE:${unlockTimestamp}]${messageContent}`;
 
@@ -1712,16 +1676,15 @@
 
         document.getElementById('capsuleCreatorModal').classList.remove('active');
 
-        fetch(`${backendBaseUrl}/api/sendMessage?from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
+        // UPDATED FETCH ROUTE (Apps Script POST)
+        fetch(`${backendBaseUrl}?action=sendMessage&from=${encodeURIComponent(user)}&to=${encodeURIComponent(activeChatTarget)}`, {
             method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: securePayload
-        }).then(() => {
-            fetchActiveChatMessages(user, activeChatTarget);
-        });
+        }).then(() => { fetchActiveChatMessages(user, activeChatTarget); });
     }
 
     let capsuleQueue = [];
     let isCapsulePlaying = false;
-    let typingTimeout; // Tracks the typing so we can stop it if they close early
+    let typingTimeout; 
 
     function triggerCapsuleOverlay(sender, text) {
         capsuleQueue.push({sender, text});
@@ -1737,7 +1700,7 @@
         document.getElementById('capsuleSenderName').innerText = capitalizeFirstLetter(cap.sender);
         
         const textBox = document.getElementById('capsuleRevealedText');
-        textBox.innerHTML = ""; // Clear it for the typing effect
+        textBox.innerHTML = ""; 
         
         if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
         
@@ -1747,7 +1710,6 @@
             overlay.classList.add('visible');
             overlay.classList.add('open');
             
-            // --- THE SLOW BURN TYPING EFFECT ---
             let i = 0;
             let isTag = false;
             let currentHTML = "";
@@ -1758,31 +1720,25 @@
                     let char = rawString.charAt(i);
                     currentHTML += char;
                     
-                    // Add a blinking cursor while typing
                     textBox.innerHTML = currentHTML + '<span style="border-right: 2px solid #7a1029; margin-left: 2px;"></span>';
                     i++;
                     
-                    // Skip delays if we are rendering an HTML tag like <br>
                     if (char === '<') isTag = true;
                     if (char === '>') isTag = false;
                     
-                    // Randomize the speed slightly to mimic human typing (30ms to 80ms)
                     let typingSpeed = isTag ? 0 : Math.floor(Math.random() * 50) + 30; 
                     
                     typingTimeout = setTimeout(typeWriter, typingSpeed);
                 } else {
-                    textBox.innerHTML = currentHTML; // Remove cursor when done
+                    textBox.innerHTML = currentHTML; 
                 }
             }
-            
-            // Wait for the envelope to pop up before starting to type (800ms)
             setTimeout(typeWriter, 800);
-            
         }, 50);
     }
 
     function closeCapsuleOverlay() {
-        clearTimeout(typingTimeout); // Stop the typing effect if closed early
+        clearTimeout(typingTimeout); 
         const overlay = document.getElementById('capsuleDisplayOverlay');
         overlay.classList.remove('visible');
         overlay.classList.remove('open');
@@ -1793,16 +1749,12 @@
         }, 1000);
     }
 
-    // --- NEW: PWA CUSTOM INSTALL PROMPT ---
     let deferredPrompt;
 
     window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent Chrome's default mini-infobar from appearing
         e.preventDefault();
-        // Stash the event so it can be triggered later.
         deferredPrompt = e;
         
-        // Show our beautiful custom modal after a short delay
         setTimeout(() => {
             const installModal = document.getElementById('installPromptModal');
             if (installModal && !localStorage.getItem('dipsum_install_dismissed')) {
@@ -1814,60 +1766,42 @@
     document.getElementById('btnInstallApp').addEventListener('click', async () => {
         document.getElementById('installPromptModal').classList.remove('active');
         if (deferredPrompt) {
-            // Show the native Android install prompt
             deferredPrompt.prompt();
-            // Wait for the user to respond
             const { outcome } = await deferredPrompt.userChoice;
             console.log(`User response to the install prompt: ${outcome}`);
             deferredPrompt = null;
         }
     });
 
-    // If they click "Use in Browser", remember it so we don't annoy them again
     document.querySelector('#installPromptModal .btn-decline, #installPromptModal button[onclick*="remove(\'active\')"]').addEventListener('click', () => {
         localStorage.setItem('dipsum_install_dismissed', 'true');
     });
 
-    // --- NEW: SETTINGS & THEME ENGINE ---
-    
-    // 1. Check Memory on Load
     window.addEventListener('DOMContentLoaded', () => {
-        if (localStorage.getItem('dipsum_dark_mode') === 'true') {
-            document.body.classList.add('dark-mode');
-        }
+        if (localStorage.getItem('dipsum_dark_mode') === 'true') { document.body.classList.add('dark-mode'); }
     });
 
     function toggleAppTheme() {
         const body = document.body;
         body.classList.toggle('dark-mode');
         const isDark = body.classList.contains('dark-mode');
-        
-        // Save to browser memory
         localStorage.setItem('dipsum_dark_mode', isDark);
-        
-        // Update the icon
         document.getElementById('themeToggleBtn').innerText = isDark ? '🌑' : '☀️';
     }
 
     function openSettingsMenu() {
         document.getElementById('settingsMenuModal').classList.add('active');
-        
-        // Set the correct icon state when opened
         const isDark = document.body.classList.contains('dark-mode');
         document.getElementById('themeToggleBtn').innerText = isDark ? '🌑' : '☀️';
-        
-        // Clear password fields
         document.getElementById('settingOldPass').value = '';
         document.getElementById('settingNewPass').value = '';
         
-        // Load the saved Avatar preference into the custom buttons
         let savedAvatar = localStorage.getItem('dipsum_interrupt_avatar') || 'boy';
         setInterruptAvatar(savedAvatar);
         
         populateSettingsConnections();
     }
 
-    // NEW: Controls the custom Avatar buttons
     function setInterruptAvatar(choice) {
         document.getElementById('settingInterruptAvatar').value = choice;
         localStorage.setItem('dipsum_interrupt_avatar', choice);
@@ -1902,65 +1836,42 @@
             }
         });
         
-        if (friendsCount === 0) {
-            listDiv.innerHTML = "<p style='font-size:12px; color:#7a1029; font-style: italic; text-align: center;'>No connections yet.</p>";
-        }
+        if (friendsCount === 0) { listDiv.innerHTML = "<p style='font-size:12px; color:#7a1029; font-style: italic; text-align: center;'>No connections yet.</p>"; }
     }
 
-    // Placeholder functions for Step 2
-    function submitPasswordChange() {
-        displaySystemAlert("Coming Soon", "The security update will be active in Step 2!", "⏳");
-    }
-
-    function saveInterruptPreference() {
-        const choice = document.getElementById('settingInterruptAvatar').value;
-        localStorage.setItem('dipsum_interrupt_avatar', choice);
-    }
-    
-    // --- CONNECTED SETTINGS & SECURITY LOGIC ---
-    
-    // --- SECURE RECOVERY ID LOGIC ---
     let actualRecoveryId = "";
 
     function fetchAndDisplayRecoveryId() {
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
-        fetch(`${backendBaseUrl}/api/getRecoveryId?user=${encodeURIComponent(user)}`)
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=getRecoveryId&user=${encodeURIComponent(user)}`)
             .then(res => res.text())
             .then(id => {
-                if (id !== "NONE") {
-                    actualRecoveryId = id; // Store it safely in background memory
-                    document.getElementById('userRecoveryId').innerText = "#XXXXX"; // Keep the screen masked
+                if (id !== "NONE" && !id.startsWith("ERROR")) {
+                    actualRecoveryId = id; 
+                    document.getElementById('userRecoveryId').innerText = "#XXXXX"; 
                 }
             });
     }
 
     function revealAndCopyRecoveryId() {
-        if (!actualRecoveryId) return; // Prevent action if not loaded yet
-        
+        if (!actualRecoveryId) return; 
         const badge = document.getElementById('userRecoveryId');
-        if (badge.innerText === "Copied!") return; // Prevent spam clicking
+        if (badge.innerText === "Copied!") return; 
         
-        // Copy to device clipboard
         navigator.clipboard.writeText(actualRecoveryId).then(() => {
-            // Visual feedback
             badge.innerText = "Copied!";
-            badge.style.background = "#22c55e"; // Success Green
+            badge.style.background = "#22c55e"; 
             badge.style.color = "white";
             
-            // Show the actual ID after 1 second
             setTimeout(() => {
                 badge.innerText = actualRecoveryId;
-                badge.style.background = "#e6c7c3"; // Revert to original color
+                badge.style.background = "#e6c7c3"; 
                 badge.style.color = "#7a1029";
                 
-                // Securely mask it again after 4 seconds
-                setTimeout(() => {
-                    badge.innerText = "#XXXXX";
-                }, 4000);
-                
+                setTimeout(() => { badge.innerText = "#XXXXX"; }, 4000);
             }, 1000);
         }).catch(() => {
-            // Fallback just in case a specific mobile browser blocks the clipboard
             badge.innerText = actualRecoveryId;
             setTimeout(() => { badge.innerText = "#XXXXX"; }, 4000);
         });
@@ -1973,7 +1884,8 @@
         
         if(!oldP || !newP) return displaySystemAlert("Missing Info", "Please fill out both password fields.", "🚫");
         
-        fetch(`${backendBaseUrl}/api/changePassword?user=${encodeURIComponent(user)}&old=${encodeURIComponent(oldP)}&new=${encodeURIComponent(newP)}`)
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=changePassword&user=${encodeURIComponent(user)}&old=${encodeURIComponent(oldP)}&new=${encodeURIComponent(newP)}`)
             .then(res => res.text())
             .then(response => {
                 if (response === "SUCCESS") {
@@ -1986,7 +1898,6 @@
             });
     }
 
-    // --- CUSTOM CONFIRMATION LOGIC FOR UNFRIEND & DELETE ---
     let pendingActionType = null;
     let pendingActionTarget = null;
 
@@ -2023,7 +1934,8 @@
         const user = document.getElementById('currentProfileName').innerText.trim().toLowerCase();
 
         if (pendingActionType === 'unfriend') {
-            fetch(`${backendBaseUrl}/api/unfriend?user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUser)}`)
+            // UPDATED FETCH ROUTE
+            fetch(`${backendBaseUrl}?action=unfriend&user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUser)}`)
                 .then(res => res.text())
                 .then(response => {
                     if (response === "SUCCESS") {
@@ -2034,7 +1946,8 @@
                     }
                 });
         } else if (pendingActionType === 'delete') {
-            fetch(`${backendBaseUrl}/api/deleteUser?admin=${encodeURIComponent(user)}&target=${encodeURIComponent(targetUser)}`)
+            // UPDATED FETCH ROUTE
+            fetch(`${backendBaseUrl}?action=deleteUser&admin=${encodeURIComponent(user)}&target=${encodeURIComponent(targetUser)}`)
                 .then(res => res.text())
                 .then(r => {
                     if (r === "DELETED") { 
@@ -2049,7 +1962,6 @@
         pendingActionTarget = null;
     }
 
-    // --- ACCOUNT RECOVERY LOGIC ---
     function openForgotPasswordModal() {
         document.getElementById('recoverUsernameInput').value = '';
         document.getElementById('recoverIdInput').value = '';
@@ -2072,7 +1984,8 @@
         btn.innerText = "Processing...";
         btn.disabled = true;
 
-        fetch(`${backendBaseUrl}/api/recoverAccount?user=${encodeURIComponent(user)}&recoveryId=${encodeURIComponent(recId)}`)
+        // UPDATED FETCH ROUTE
+        fetch(`${backendBaseUrl}?action=recoverAccount&user=${encodeURIComponent(user)}&recoveryId=${encodeURIComponent(recId)}`)
             .then(res => res.text())
             .then(data => {
                 btn.innerText = originalText;
@@ -2081,11 +1994,9 @@
                 if (data.startsWith("SUCCESS")) {
                     closeForgotPasswordModal();
                     
-                    // Display the temporary password returned from the Java backend
                     let displayMessage = data.replace("SUCCESS: ", "") + "\n\nLog in now and check your messages from 'Help'!";
                     displaySystemAlert("Account Recovered!", displayMessage, "✨");
                     
-                    // Auto-fill the username so they just have to type the temporary password
                     document.getElementById('usernameInput').value = user;
                     document.getElementById('passwordInput').value = '';
                 } else {
@@ -2099,7 +2010,6 @@
             });
     }
 
-    // --- PUSH NOTIFICATION SETUP ---
     function urlB64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
         const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -2114,16 +2024,16 @@
     function setupPushNotifications(username) {
         if ('serviceWorker' in navigator && 'PushManager' in window) {
             navigator.serviceWorker.ready.then(function(registration) {
-                // YOUR NEW PUBLIC KEY IS HERE:
                 const applicationServerKey = urlB64ToUint8Array('BG-lGbA-VakgExNuYveaT89O9aKE0NqjRwAiX_cifvYYVWme1mJCb7cgDwvf7pEca5vtuaekEj9qEri-G_ry1CA');
                 
                 registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: applicationServerKey
                 }).then(function(subscription) {
-                    fetch(`${backendBaseUrl}/api/saveSubscription?username=${encodeURIComponent(username)}`, {
+                    // UPDATED FETCH ROUTE (Apps Script POST)
+                    fetch(`${backendBaseUrl}?action=saveSubscription&username=${encodeURIComponent(username)}`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify(subscription)
                     });
                 }).catch(function(err) {
@@ -2132,8 +2042,6 @@
             });
         }
     }
-
-    
 </script>
 <script>
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW failed:', err));
