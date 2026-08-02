@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dipsum-v6';
+const CACHE_NAME = 'dipsum-v1';
 const ASSETS = [
   '/index.html',
   '/dipsum-logo.png',
@@ -39,7 +39,9 @@ self.addEventListener('activate', function(event) {
 
 // Network-first fetch strategy (Completely ignores API traffic)
 self.addEventListener('fetch', function(event) {
-  if (event.request.url.indexOf('/api/') !== -1) return;
+  // NEW: Tell the Service Worker to ignore Google Apps Script traffic!
+  if (event.request.url.indexOf('script.google.com') !== -1) return;
+  
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
