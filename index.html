@@ -963,114 +963,117 @@
             if (statusDot && statusDot.classList.contains('status-online')) isTargetOnline = true;
         }
 
-        // UPDATED FETCH ROUTE
-        fetch(`${backendBaseUrl}?action=checkConnection&user1=${encodeURIComponent(user)}&user2=${encodeURIComponent(targetUsername)}`)
-            .then(res => res.text()).then(isAllowed => {
-                if (isAllowed.trim() === "TRUE" || isAllowed.trim().startsWith("ERROR") === false) {
-                    currentLoadedMessageCount = 0;
-                    activeChatTarget = targetUsername;
-                    cancelReply(); 
+        // NO MORE WAITING! Build UI immediately!
+        currentLoadedMessageCount = 0;
+        activeChatTarget = targetUsername;
+        cancelReply(); 
 
-                    let loungeMain = document.querySelector('.lounge-main');
-                    if (!loungeMain) return;
+        let loungeMain = document.querySelector('.lounge-main');
+        if (!loungeMain) return;
 
-                    let headerAvatarHtml = activeChatAvatarPayload !== "NONE" 
-                        ? `<img src="${activeChatAvatarPayload}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:12px;">` 
-                        : `<div class="header-dp-avatar" style="margin-right:12px; background:#2563eb; color:white; font-weight:bold; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">${targetUsername.charAt(0).toUpperCase()}</div>`;
+        let headerAvatarHtml = activeChatAvatarPayload !== "NONE" 
+            ? `<img src="${activeChatAvatarPayload}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:12px;">` 
+            : `<div class="header-dp-avatar" style="margin-right:12px; background:#2563eb; color:white; font-weight:bold; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">${targetUsername.charAt(0).toUpperCase()}</div>`;
 
-                    const initialStatusIconHtml = isTargetOnline ? `<img src="online.png" class="status-round-indicator online">` : `<img src="offline.png" class="status-round-indicator offline">`;
+        const initialStatusIconHtml = isTargetOnline ? `<img src="online.png" class="status-round-indicator online">` : `<img src="offline.png" class="status-round-indicator offline">`;
 
-                    loungeMain.innerHTML = `
-                <style>
-                    @keyframes pawBounce { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
-                    .paw-anim { display: inline-block; animation: pawBounce 0.9s infinite ease-in-out; margin: 0 1px; }
-                    .msg-quoted { background: rgba(255,255,255,0.4); border-left: 3px solid #aad052; padding: 6px 8px; font-size: 12px; color: #555; margin-bottom: 6px; border-radius: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic; word-break: break-word; cursor: pointer; }
-                    .reply-action-btn { opacity: 0.4; cursor: pointer; font-size: 14px; margin: 0 8px; background: #fffdf5; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: all 0.2s; border: 1px solid #aad052; flex-shrink: 0; }
-                    .reply-action-btn:hover { opacity: 1; transform: scale(1.1); background: #aad052; }
-                    
-                    .msg-jumbo-emoji { font-size: 45px !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
-                    .emoji-grid-panel { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; background: #1e293b; border: 1px solid #aad052; padding: 15px; border-radius: 20px; position: absolute; bottom: 70px; left: 10px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-height: 200px; overflow-y: auto; }
-                    .emoji-grid-panel span { font-size: 26px; cursor: pointer; transition: transform 0.1s ease; text-align: center; }
-                    .emoji-grid-panel span:hover { transform: scale(1.3); }
+        loungeMain.innerHTML = `
+        <style>
+            @keyframes pawBounce { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+            .paw-anim { display: inline-block; animation: pawBounce 0.9s infinite ease-in-out; margin: 0 1px; }
+            .msg-quoted { background: rgba(255,255,255,0.4); border-left: 3px solid #aad052; padding: 6px 8px; font-size: 12px; color: #555; margin-bottom: 6px; border-radius: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-style: italic; word-break: break-word; cursor: pointer; }
+            .reply-action-btn { opacity: 0.4; cursor: pointer; font-size: 14px; margin: 0 8px; background: #fffdf5; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: all 0.2s; border: 1px solid #aad052; flex-shrink: 0; }
+            .reply-action-btn:hover { opacity: 1; transform: scale(1.1); background: #aad052; }
+            
+            .msg-jumbo-emoji { font-size: 45px !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+            .emoji-grid-panel { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; background: #1e293b; border: 1px solid #aad052; padding: 15px; border-radius: 20px; position: absolute; bottom: 70px; left: 10px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-height: 200px; overflow-y: auto; }
+            .emoji-grid-panel span { font-size: 26px; cursor: pointer; transition: transform 0.1s ease; text-align: center; }
+            .emoji-grid-panel span:hover { transform: scale(1.3); }
 
-                    .sticker-drawer-panel { display: flex; gap: 8px; background: #1e293b; border: 1px solid #aad052; padding: 12px; border-radius: 20px; position: absolute; bottom: 70px; right: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-width: 280px; flex-wrap: wrap; justify-content: center; max-height: 220px; overflow-y: auto; }
-                    .sticker-drawer-panel img { width: 55px; height: 55px; cursor: pointer; transition: transform 0.1s ease; object-fit: contain; border-radius: 8px; }
-                    .sticker-drawer-panel img:hover { transform: scale(1.15); background: rgba(255,255,255,0.1); }
-                    .msg-bubble { word-break: break-word !important; overflow-wrap: anywhere !important; }
-                    .msg-bubble-media { max-width: 100% !important; object-fit: contain; }
-                </style>
-                <div class="chat-window-pane" style="position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
-                    <div class="chat-header-bar" style="display:flex; align-items:center; padding:10px 15px; background:#e6c7c3; border-bottom:1px solid #334155;">
-                        <button class="mobile-back-nav-btn" onclick="exitActiveMobileChatView()" style="background:none; border:none; color:#334155; font-size:30px; font-weight:bold; margin-right:15px; cursor:pointer; padding:5px 0; display:none;">❮</button>
-                        ${headerAvatarHtml}
-                        <div class="header-meta-box">
-                            <div class="header-profile-title" style="color:#334155; font-weight:bold; font-size:16px; line-height: 1.2;">${capitalizeFirstLetter(targetUsername)}</div>
-                            <div id="userStatusWrapper" class="status-round-container">${initialStatusIconHtml}</div>
-                        </div>
-                        
-                        <div id="loungePetContainer" style="margin-left: 15px; font-size: 22px; transition: transform 0.3s; cursor: pointer;" title="Lounge Pet">💤🧸</div>
-                        
-                        <div onclick="sendInterrupt()" style="margin-left: 15px; font-size: 22px; cursor: pointer; transition: transform 0.2s; filter: drop-shadow(0 0 5px rgba(245,158,11,0.5));" title="Interrupt Partner" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🔥</div>
+            .sticker-drawer-panel { display: flex; gap: 8px; background: #1e293b; border: 1px solid #aad052; padding: 12px; border-radius: 20px; position: absolute; bottom: 70px; right: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); z-index: 100; max-width: 280px; flex-wrap: wrap; justify-content: center; max-height: 220px; overflow-y: auto; }
+            .sticker-drawer-panel img { width: 55px; height: 55px; cursor: pointer; transition: transform 0.1s ease; object-fit: contain; border-radius: 8px; }
+            .sticker-drawer-panel img:hover { transform: scale(1.15); background: rgba(255,255,255,0.1); }
+            .msg-bubble { word-break: break-word !important; overflow-wrap: anywhere !important; }
+            .msg-bubble-media { max-width: 100% !important; object-fit: contain; }
+        </style>
+        <div class="chat-window-pane" style="position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+            <div class="chat-header-bar" style="display:flex; align-items:center; padding:10px 15px; background:#e6c7c3; border-bottom:1px solid #334155;">
+                <button class="mobile-back-nav-btn" onclick="exitActiveMobileChatView()" style="background:none; border:none; color:#334155; font-size:30px; font-weight:bold; margin-right:15px; cursor:pointer; padding:5px 0; display:none;">❮</button>
+                ${headerAvatarHtml}
+                <div class="header-meta-box">
+                    <div class="header-profile-title" style="color:#334155; font-weight:bold; font-size:16px; line-height: 1.2;">${capitalizeFirstLetter(targetUsername)}</div>
+                    <div id="userStatusWrapper" class="status-round-container">${initialStatusIconHtml}</div>
+                </div>
+                
+                <div id="loungePetContainer" style="margin-left: 15px; font-size: 22px; transition: transform 0.3s; cursor: pointer;" title="Lounge Pet">💤🧸</div>
+                
+                <div onclick="sendInterrupt()" style="margin-left: 15px; font-size: 22px; cursor: pointer; transition: transform 0.2s; filter: drop-shadow(0 0 5px rgba(245,158,11,0.5));" title="Interrupt Partner" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">🔥</div>
 
-                        <div style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #15803d; background: #dcfce7; padding: 4px 8px; border-radius: 12px; font-weight: 600; animation: pulseGlow 3s infinite;">
-                            <span>🔐</span> E2E Encrypted
-                        </div>
-                    </div>
+                <div style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #15803d; background: #dcfce7; padding: 4px 8px; border-radius: 12px; font-weight: 600; animation: pulseGlow 3s infinite;">
+                    <span>🔐</span> E2E Encrypted
+                </div>
+            </div>
 
-                    <div class="chat-log-display" id="chatLogDisplay" onscroll="handleChatLogScroll()" style="flex:1; padding:20px; overflow-y:auto; overflow-x:hidden; width: 100%; box-sizing: border-box;"></div>
+            <!-- INSTANT LOADING ANIMATION INJECTED HERE -->
+            <div class="chat-log-display" id="chatLogDisplay" onscroll="handleChatLogScroll()" style="flex:1; padding:20px; overflow-y:auto; overflow-x:hidden; width: 100%; box-sizing: border-box;">
+                <div id="chatLoadingState" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.8;">
+                    <img src="loading.png" style="width: 50px; height: 50px; animation: softBreathe 1s infinite alternate; margin-bottom: 10px;">
+                    <div style="color: #7a1029; font-size: 13px; font-weight: bold;">Loading Secure Chat...</div>
+                </div>
+            </div>
 
-                    <button id="scrollToBottomFloatingBtn" class="scroll-bottom-btn" onclick="snapChatToBottom()">▼</button>
+            <button id="scrollToBottomFloatingBtn" class="scroll-bottom-btn" onclick="snapChatToBottom()">▼</button>
 
-                    <div id="typingIndicatorContainer" style="display:none; background: #e6c7c3; padding: 4px 20px; font-size: 13px; color: #961808; text-align: left; border-top: 1px solid #aad052;">
-                        <i>${capitalizeFirstLetter(targetUsername)} is typing</i> <span class="paw-anim" style="animation-delay: 0s;">🐾</span><span class="paw-anim" style="animation-delay: 0.2s;">🐾</span><span class="paw-anim" style="animation-delay: 0.4s;">🐾</span>
-                    </div>
+            <div id="typingIndicatorContainer" style="display:none; background: #e6c7c3; padding: 4px 20px; font-size: 13px; color: #961808; text-align: left; border-top: 1px solid #aad052;">
+                <i>${capitalizeFirstLetter(targetUsername)} is typing</i> <span class="paw-anim" style="animation-delay: 0s;">🐾</span><span class="paw-anim" style="animation-delay: 0.2s;">🐾</span><span class="paw-anim" style="animation-delay: 0.4s;">🐾</span>
+            </div>
 
-                    <div id="emojiMiniDrawer" class="emoji-grid-panel" style="display: none;">
-                        <span onclick="injectEmojiToken('😀')">😀</span><span onclick="injectEmojiToken('😂')">😂</span><span onclick="injectEmojiToken('🥰')">🥰</span>
-                        <span onclick="injectEmojiToken('😍')">😍</span><span onclick="injectEmojiToken('😘')">😘</span><span onclick="injectEmojiToken('🥺')">🥺</span>
-                        <span onclick="injectEmojiToken('😭')">😭</span><span onclick="injectEmojiToken('😤')">😤</span><span onclick="injectEmojiToken('😡')">😡</span>
-                        <span onclick="injectEmojiToken('❤️')">❤️</span><span onclick="injectEmojiToken('💖')">💖</span><span onclick="injectEmojiToken('💔')">💔</span>
-                        <span onclick="injectEmojiToken('✨')">✨</span><span onclick="injectEmojiToken('🔥')">🔥</span><span onclick="injectEmojiToken('👍')">👍</span>
-                        <span onclick="injectEmojiToken('👎')">👎</span><span onclick="injectEmojiToken('🙏')">🙏</span><span onclick="injectEmojiToken('🌹')">🌹</span>
-                        <span onclick="injectEmojiToken('🧸')">🧸</span><span onclick="injectEmojiToken('💍')">💍</span><span onclick="injectEmojiToken('🎉')">🎉</span>
-                        <span onclick="injectEmojiToken('👀')">👀</span><span onclick="injectEmojiToken('🥱')">🥱</span><span onclick="injectEmojiToken('😴')">😴</span>
-                    </div>
+            <div id="emojiMiniDrawer" class="emoji-grid-panel" style="display: none;">
+                <span onclick="injectEmojiToken('😀')">😀</span><span onclick="injectEmojiToken('😂')">😂</span><span onclick="injectEmojiToken('🥰')">🥰</span>
+                <span onclick="injectEmojiToken('😍')">😍</span><span onclick="injectEmojiToken('😘')">😘</span><span onclick="injectEmojiToken('🥺')">🥺</span>
+                <span onclick="injectEmojiToken('😭')">😭</span><span onclick="injectEmojiToken('😤')">😤</span><span onclick="injectEmojiToken('😡')">😡</span>
+                <span onclick="injectEmojiToken('❤️')">❤️</span><span onclick="injectEmojiToken('💖')">💖</span><span onclick="injectEmojiToken('💔')">💔</span>
+                <span onclick="injectEmojiToken('✨')">✨</span><span onclick="injectEmojiToken('🔥')">🔥</span><span onclick="injectEmojiToken('👍')">👍</span>
+                <span onclick="injectEmojiToken('👎')">👎</span><span onclick="injectEmojiToken('🙏')">🙏</span><span onclick="injectEmojiToken('🌹')">🌹</span>
+                <span onclick="injectEmojiToken('🧸')">🧸</span><span onclick="injectEmojiToken('💍')">💍</span><span onclick="injectEmojiToken('🎉')">🎉</span>
+                <span onclick="injectEmojiToken('👀')">👀</span><span onclick="injectEmojiToken('🥱')">🥱</span><span onclick="injectEmojiToken('😴')">😴</span>
+            </div>
 
-                    <div id="stickerMiniDrawer" class="sticker-drawer-panel" style="display: none;">
-                        ${stickerCollection.map(s => `<img src="stickers/${s}" onclick="sendSticker('${s}')">`).join('')}
-                    </div>
+            <div id="stickerMiniDrawer" class="sticker-drawer-panel" style="display: none;">
+                ${stickerCollection.map(s => `<img src="stickers/${s}" onclick="sendSticker('${s}')">`).join('')}
+            </div>
 
-                    <div id="activeReplyBanner" style="display: none; background: #fdf8ef; padding: 8px 12px; border-left: 4px solid #aad052; font-size: 13px; color: #334155; position: relative; border-top: 1px solid #edbdb7; z-index: 10;">
-                        <span style="font-weight:bold; color:#aad052; font-size: 12px;">Replying to:</span>
-                        <div id="replyBannerText" style="margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; opacity: 0.8; font-style: italic;"></div>
-                        <span onclick="cancelReply()" style="position: absolute; right: 10px; top: 8px; cursor: pointer; color: #961808; font-weight: bold; padding: 4px; font-size: 16px;">✕</span>
-                    </div>
+            <div id="activeReplyBanner" style="display: none; background: #fdf8ef; padding: 8px 12px; border-left: 4px solid #aad052; font-size: 13px; color: #334155; position: relative; border-top: 1px solid #edbdb7; z-index: 10;">
+                <span style="font-weight:bold; color:#aad052; font-size: 12px;">Replying to:</span>
+                <div id="replyBannerText" style="margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; opacity: 0.8; font-style: italic;"></div>
+                <span onclick="cancelReply()" style="position: absolute; right: 10px; top: 8px; cursor: pointer; color: #961808; font-weight: bold; padding: 4px; font-size: 16px;">✕</span>
+            </div>
 
-                    <div id="chatFooterBar" class="chat-footer-input-bar" style="display:flex; align-items:flex-end; gap:4px; padding:10px 6px; background:#e6c7c3; border-top:1px solid #edbdb7; width: 100%; box-sizing: border-box; transition: all 0.3s ease;">
-                        <input type="file" id="chatMediaSelectorInput" accept="image/*" style="display:none;" onchange="processMediaFileTransmission(this)">
-                        
-                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Send Image" onclick="document.getElementById('chatMediaSelectorInput').click()">🖼️</button>
-                        
-                        <button class="tool-action-btn" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Insert Emoji" onclick="toggleEmojiDrawerOverlay()">😊</button>
-                        
-                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Send Sticker" onclick="toggleStickerDrawerOverlay()">🐶</button>
-                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Time Capsule" onclick="openCapsuleModal()">⏳</button>
-                        <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Thinking of You" onclick="sendHeartbeat()">💖</button>
+            <div id="chatFooterBar" class="chat-footer-input-bar" style="display:flex; align-items:flex-end; gap:4px; padding:10px 6px; background:#e6c7c3; border-top:1px solid #edbdb7; width: 100%; box-sizing: border-box; transition: all 0.3s ease;">
+                <input type="file" id="chatMediaSelectorInput" accept="image/*" style="display:none;" onchange="processMediaFileTransmission(this)">
+                
+                <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Send Image" onclick="document.getElementById('chatMediaSelectorInput').click()">🖼️</button>
+                
+                <button class="tool-action-btn" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Insert Emoji" onclick="toggleEmojiDrawerOverlay()">😊</button>
+                
+                <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Send Sticker" onclick="toggleStickerDrawerOverlay()">🐶</button>
+                <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Time Capsule" onclick="openCapsuleModal()">⏳</button>
+                <button class="tool-action-btn hide-on-type" style="background:none; border:none; font-size:22px; cursor:pointer; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 2px; flex-shrink: 0;" title="Thinking of You" onclick="sendHeartbeat()">💖</button>
 
-                        <textarea id="msgInputField" placeholder="Type here..." rows="1" style="flex: 1 !important; min-width: 0 !important; background:#e6c7c3; border:1px solid #334155; color:#961808; padding:10px 12px; border-radius:8px; font-size:15px; outline:none; resize:none; max-height:120px; height:42px; box-sizing:border-box; overflow-y:auto; font-family:inherit; line-height:1.4; transition: all 0.3s ease;" onkeydown="handleChatKeyDown(event)" oninput="handleTypingInput(this)" onfocus="setTimeout(snapChatToBottom, 300)"></textarea>
+                <textarea id="msgInputField" placeholder="Type here..." rows="1" style="flex: 1 !important; min-width: 0 !important; background:#e6c7c3; border:1px solid #334155; color:#961808; padding:10px 12px; border-radius:8px; font-size:15px; outline:none; resize:none; max-height:120px; height:42px; box-sizing:border-box; overflow-y:auto; font-family:inherit; line-height:1.4; transition: all 0.3s ease;" onkeydown="handleChatKeyDown(event)" oninput="handleTypingInput(this)" onfocus="setTimeout(snapChatToBottom, 300)"></textarea>
 
-                        <button id="mobileSendBtn" class="sync-btn" style="width: 42px !important; height: 42px !important; flex-shrink: 0 !important; background: linear-gradient(135deg, #99464b 0%, #fe9a9f 100%) !important; border: none !important; color: white !important; padding: 0 !important; border-radius: 50% !important; cursor: pointer; display: inline-flex !important; align-items: center !important; justify-content: center !important; margin-bottom: 2px;" onclick="triggerMessageDispatch()"><span style="display: inline-block; transform: rotate(-45deg); font-size: 25px; line-height: 1; margin-left: 1px; margin-top: -3px; pointer-events: none;">➤</span></button>
-                    </div>
-                </div>`;
+                <button id="mobileSendBtn" class="sync-btn" style="width: 42px !important; height: 42px !important; flex-shrink: 0 !important; background: linear-gradient(135deg, #99464b 0%, #fe9a9f 100%) !important; border: none !important; color: white !important; padding: 0 !important; border-radius: 50% !important; cursor: pointer; display: inline-flex !important; align-items: center !important; justify-content: center !important; margin-bottom: 2px;" onclick="triggerMessageDispatch()"><span style="display: inline-block; transform: rotate(-45deg); font-size: 25px; line-height: 1; margin-left: 1px; margin-top: -3px; pointer-events: none;">➤</span></button>
+            </div>
+        </div>`;
 
-                    if(window.innerWidth <= 768) {
-                        const backBtn = loungeMain.querySelector('.mobile-back-nav-btn');
-                        if(backBtn) backBtn.style.setProperty('display', 'block', 'important');
-                    }
-                    document.body.classList.add('mobile-chat-view-engaged');
-                    fetchActiveChatMessages(user, targetUsername);
-                } else displaySystemAlert("Violation", `No active secure transmission channel.`, "🔒");
-            }).catch(() => {});
+        if(window.innerWidth <= 768) {
+            const backBtn = loungeMain.querySelector('.mobile-back-nav-btn');
+            if(backBtn) backBtn.style.setProperty('display', 'block', 'important');
+        }
+        document.body.classList.add('mobile-chat-view-engaged');
+        
+        // Triggers the background fetch while the loading UI plays
+        fetchActiveChatMessages(user, targetUsername);
     }   
 
     function fetchActiveChatMessages(currentUser, targetUser) {
